@@ -9,6 +9,7 @@ import { track } from "@/lib/analytics"
 import { milestoneSchema, type TxPhase } from "./types"
 import { useQuestCreation } from "./context"
 import { useWallet } from "@/hooks/use-wallet"
+import { useWalletBalance } from "@/hooks/use-wallet-balance"
 import { questClient, Visibility } from "@/lib/contracts/quest"
 import { rewardsClient } from "@/lib/contracts/rewards"
 import { milestoneClient } from "@/lib/contracts/milestone"
@@ -26,7 +27,8 @@ interface Step3ReviewProps {
 
 export function Step3Review({ onComplete }: Step3ReviewProps) {
   const { step1Data, step2Data, goToBack } = useQuestCreation()
-  const { address } = useWallet()
+  const { address, networkName } = useWallet()
+  const { xlmBalance, rewardBalance, isLoading: balanceLoading, error: balanceError } = useWalletBalance(address, networkName)
   const queryClient = useQueryClient()
   const [txPhase, setTxPhase] = useState<TxPhase>("idle")
   const [txError, setTxError] = useState<string | null>(null)
@@ -38,6 +40,8 @@ export function Step3Review({ onComplete }: Step3ReviewProps) {
   )
 
   const rewardToken = getConfiguredRewardToken()
+
+  const hasInsufficientBalance = rewardBalance !== null && parseFloat(rewardBalance) < totalReward
 
   const handleFund = async () => {
     if (!address) return
@@ -253,6 +257,39 @@ export function Step3Review({ onComplete }: Step3ReviewProps) {
               </span>
             </div>
 
+            {/* Balance display */}
+            {balanceLoading ? (
+              <div className="bg-secondary border-border mb-4 flex items-center justify-between border p-3">
+                <span className="text-muted-foreground text-sm">
+                  <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                  Loading wallet balance...
+                </span>
+              </div>
+            ) : rewardBalance !== null ? (
+              <div className="bg-secondary border-border mb-4 flex items-center justify-between border p-3">
+                <span className="text-muted-foreground text-sm font-semibold">Your balance:</span>
+                <span className="tabular-nums font-semibold">
+                  {rewardBalance} {rewardToken?.symbol ?? "tokens"}
+                </span>
+              </div>
+            ) : null}
+
+            {balanceError && (
+              <div className="border-destructive bg-destructive/10 mb-4 flex items-start gap-2 border p-3">
+                <AlertCircle className="text-destructive mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p className="text-destructive text-sm">{balanceError}</p>
+              </div>
+            )}
+
+            {hasInsufficientBalance && (
+              <div className="border-destructive bg-destructive/10 mb-4 flex items-start gap-2 border p-3">
+                <AlertCircle className="text-destructive mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p className="text-destructive text-sm">
+                  Insufficient balance. You need {formatTokens(totalReward)} {rewardToken?.symbol ?? "tokens"} but have {rewardBalance}.
+                </p>
+              </div>
+            )}
+
             <p className="text-muted-foreground mb-4 text-xs">
               {rewardToken ? (
                 <>
@@ -315,12 +352,13 @@ export function Step3Review({ onComplete }: Step3ReviewProps) {
             {/* Fund button */}
             <Button
               onClick={handleFund}
-              disabled={txPhase !== "created" || isBusy}
+              disabled={txPhase !== "created" || isBusy || hasInsufficientBalance || balanceLoading}
               variant={txPhase === "funded" || txPhase === "done" ? "secondary" : "default"}
               className={cn(
                 "shimmer-on-hover mb-3 w-full",
                 (txPhase === "funded" || txPhase === "done") && "border-success"
               )}
+              title={hasInsufficientBalance ? "Insufficient balance to fund this quest" : undefined}
             >
               {txPhase === "funding" ? (
                 <>
