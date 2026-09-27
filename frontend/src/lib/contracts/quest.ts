@@ -48,6 +48,13 @@ export class QuestClient {
     return this.parseQuestInfo(result)
   }
 
+  /**
+   * @deprecated This method makes O(N+1) sequential RPC calls (one per quest).
+   * Use paginated alternatives instead:
+   * - `listPublicQuests(start, limit)` for public quests with pagination
+   * - `listQuestsByOwner(owner)` for quests owned by a specific address
+   * - `listQuestsByEnrollee(enrollee)` for quests a user is enrolled in
+   */
   async getQuests(): Promise<QuestInfo[]> {
     const count = await this.getQuestCount()
     const quests: QuestInfo[] = []
