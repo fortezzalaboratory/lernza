@@ -1058,6 +1058,17 @@ impl MilestoneContract {
 
     /// Verify an enrollee's completion of a milestone. Owner only.
     /// Returns the reward_amount so the frontend can trigger token distribution.
+    ///
+    /// # Distribution Mode Support
+    /// - **Custom**: Full milestone reward (verified amount)
+    /// - **Flat**: Flat reward configured for the quest
+    /// - **Percentage**: Percentage of milestone reward
+    /// - **Competitive**: Reward if completion is within max_winners limit
+    /// - **PartialCredit**: NOT supported here; use `verify_partial_completion` instead
+    ///
+    /// # Errors
+    /// Returns `InvalidInput` if the milestone uses `DistributionMode::PartialCredit`.
+    /// For partial credit verification, call `verify_partial_completion` with criteria_met.
     pub fn verify_completion(
         env: Env,
         owner: Address,

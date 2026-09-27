@@ -2101,6 +2101,23 @@ fn test_verify_completion_cancelled_quest_rejected() {
     assert_eq!(res, Err(Ok(Error::Unauthorized)));
 }
 
+#[test]
+fn test_verify_completion_rejects_partial_credit_mode() {
+    let (env, client, quest_client, owner) = setup();
+    let q_id = create_quest(&env, &quest_client, &owner);
+
+    // Set distribution mode to PartialCredit
+    client.set_distribution_mode(&owner, &q_id, &DistributionMode::PartialCredit(10), &0);
+    create_ms(&env, &client, &owner, q_id, "Task", 100);
+
+    let enrollee = Address::generate(&env);
+    quest_client.add_enrollee(&q_id, &enrollee);
+
+    // verify_completion should reject PartialCredit mode; use verify_partial_completion instead
+    let result = client.try_verify_completion(&owner, &q_id, &0, &enrollee);
+    assert_eq!(result, Err(Ok(Error::InvalidInput)));
+}
+
 // ── PartialCredit distribution mode tests ────────────────────────────────────
 
 #[test]
