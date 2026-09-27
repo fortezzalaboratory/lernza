@@ -465,7 +465,9 @@ pub fn estimate_persistent_rent(entry_size_bytes: u32) -> i128 {
 }
 
 /// Deterministic milestone ID — issue #1340
-/// Uses hash(quest_id || timestamp || nonce) to avoid collisions on redeploy/fork
+/// Uses hash(quest_id || timestamp || nonce) to avoid collisions on redeploy/fork.
+/// Currently unused as milestones use auto-incrementing IDs. Retained in common crate
+/// for potential future use if architecture changes to hash-based IDs.
 pub fn deterministic_milestone_id(quest_id: &[u8], timestamp: u64, nonce: u64) -> [u8; 32] {
     let mut out = [0u8; 32];
     let ts_bytes = timestamp.to_be_bytes();
